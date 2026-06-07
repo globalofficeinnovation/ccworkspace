@@ -2687,7 +2687,13 @@ function switchView(v){
   if(v==='archive')renderArchive();
   if(v==='admin')renderAdminList();
   if(v==='myboard')renderMyBoard();
-  if(v==='chatbot')renderChatbotMessages();
+  if(v==='chatbot'){
+    renderChatbotMessages();
+    // Auto-show API key modal if no key saved yet
+    if(!localStorage.getItem('cc_assistant_key')){
+      setTimeout(()=>showApiKeyModal(),300);
+    }
+  }
   if(v==='weekendtracker')renderWeekendTracker();
   if(v==='floorplanner')renderFloorPlanner();
   const now=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
@@ -3854,6 +3860,13 @@ function saveApiKey(){
   chatbotHistory.push({role:'assistant', content:'API key saved. I\'m ready to help! Ask me anything about your leads or pipeline.', ts:Date.now()});
   renderChatbotMessages();
 }
+
+window.sendChatbotMessage=sendChatbotMessage;
+window.cbSuggest=cbSuggest;
+window.clearChatbot=clearChatbot;
+window.showApiKeyModal=showApiKeyModal;
+window.closeApiKeyModal=closeApiKeyModal;
+window.saveApiKey=saveApiKey;
 
 async function init(){
   const now=new Date();
