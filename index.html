@@ -1026,7 +1026,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
       <span class="nav-label">General Concerns</span>
       <span class="nav-badge" id="nb-tasks">—</span>
     </button>
-    <button class="nav-item" id="nav-admin" onclick="switchView('admin')" style="display:none">
+    <button class="nav-item" id="nav-admin" onclick="switchView('admin')">
       <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       <span class="nav-label">Admin</span>
     </button>
@@ -1159,6 +1159,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
     <button class="tcp-toggle-btn" id="tcp-toggle-btn" onclick="toggleTeamChat()">
       💬 Team Chat <span class="tcp-unread" id="tcp-unread" style="display:none">0</span>
     </button>
+    <button class="add-lead-btn" onclick="openAddLead()" style="margin-left:6px">+ Add Lead</button>
   </div>
   <div class="board-area" style="display:flex;flex:1;min-height:0;overflow:hidden;">
     <div class="board-wrap" style="flex:1;overflow:auto;"><div class="board" id="board"></div></div>
@@ -1667,6 +1668,17 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
           <label>Specialty / Type</label>
           <input type="text" id="al-sub" placeholder="e.g. Bakes · Mochi">
         </div>
+      </div>
+      <div class="form-row">
+        <label>Lead Subcategory</label>
+        <select id="al-tt">
+          <option value="">— Not tagged —</option>
+          <option value="fnb_lt">F&amp;B Long-term</option>
+          <option value="fnb_popup">F&amp;B Weekend Pop-up</option>
+          <option value="retail_lt">Retail Long-term</option>
+          <option value="retail_popup">Retail Weekend Pop-up</option>
+          <option value="retail_cons">Retail Consignment</option>
+        </select>
       </div>
       <div class="form-row">
         <label>Priority — <span id="al-pri-val" style="color:var(--terra);font-weight:700">5</span> / 10</label>
@@ -2212,6 +2224,8 @@ function updateSubcatCounts(){
     if(el)el.textContent=counts[k]||0;
   });
 }
+
+function saveTargetType(){
   if(!activeDrawerId)return;
   getCRM(activeDrawerId).targetType=document.getElementById('tt-select').value||'';
   saveAll();renderLeads();
@@ -2509,7 +2523,17 @@ function schedEventCard(e,ts){
 // ══════════════════════════════════
 // ADD LEAD MODAL
 // ══════════════════════════════════
-function openAddLead(){document.getElementById('add-lead-overlay').classList.add('open');}
+function openAddLead(presetTT){
+  document.getElementById('add-lead-overlay').classList.add('open');
+  // Pre-fill subcategory based on current view context
+  const ttSel = document.getElementById('al-tt');
+  if(ttSel){
+    if(presetTT) ttSel.value = presetTT;
+    else if(currentAppView==='pipeline' && pFiltTT && pFiltTT!=='all') ttSel.value = pFiltTT;
+    else if(currentAppView==='leads' && lFilt.tt && lFilt.tt!=='all') ttSel.value = lFilt.tt;
+    else ttSel.value = '';
+  }
+}
 
 function closeAddLead(){
   document.getElementById('add-lead-overlay').classList.remove('open');
@@ -2517,6 +2541,7 @@ function closeAddLead(){
   const p=document.getElementById('al-pri');if(p)p.value=5;
   const pv=document.getElementById('al-pri-val');if(pv)pv.textContent='5';
   const pd=document.getElementById('al-pri-display');if(pd)pd.textContent='5';
+  const tt=document.getElementById('al-tt');if(tt)tt.value='';
 }
 
 function submitAddLead(){
@@ -2528,12 +2553,16 @@ function submitAddLead(){
   const sub=(document.getElementById('al-sub').value||'').trim()||'—';
   const pri=parseFloat(document.getElementById('al-pri').value)||5;
   const notes=(document.getElementById('al-notes').value||'').trim();
+  const tt=(document.getElementById('al-tt')?.value)||'';
   const id=name.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0,18)+'_'+Date.now().toString(36);
   const newLead={id,name,ig,igv:false,iu:`https://www.instagram.com/${ig}`,ws:null,wd:null,cat,sub,concept:concept||'Manually added.',pop:'To verify',fol:'To verify',aud:'',locs:'',fit:'',mom:'',ang:'',notes:notes||'Manually added lead.',pri};
   leads.push(newLead);
-  crm[id]={stage:'new',log:[],owner:currentUser,nextStep:'',callDate:'',viewingDate:''};
+  crm[id]={stage:'new',log:[],owner:currentUser,nextStep:'',callDate:'',viewingDate:'',targetType:tt};
   logActivity(id,'added',`Lead manually added by ${currentUser}`);
-  saveAll();closeAddLead();renderLeads();
+  saveAll();closeAddLead();
+  // Refresh whichever view is active
+  if(currentAppView==='pipeline'){buildBoard();updatePipelineSubcatBadges();}
+  else{renderLeads();updateSubcatBadges();}
   setTimeout(()=>openDrawer(id),150);
 }
 
@@ -3867,6 +3896,7 @@ window.clearChatbot=clearChatbot;
 window.showApiKeyModal=showApiKeyModal;
 window.closeApiKeyModal=closeApiKeyModal;
 window.saveApiKey=saveApiKey;
+window.openAddLead=openAddLead;
 
 async function init(){
   const now=new Date();
@@ -3881,7 +3911,7 @@ async function init(){
   renderLeads();
   renderTasks();
   updateTaskStats();
-  document.getElementById('nav-admin').style.display='flex';
+  // admin is always visible
 }
 
 init();
