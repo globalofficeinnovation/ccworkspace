@@ -317,6 +317,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
 .cal-event{font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cal-event.call{background:var(--terra-lt);color:var(--terra);}
 .cal-event.viewing{background:var(--blue-lt);color:var(--blue);}
+.cal-event.meeting{background:var(--violet-lt);color:var(--violet);}
 .sched-right-header{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .sched-right-title{font-family:'Playfair Display',serif;font-size:13px;color:var(--text);margin-bottom:1px;}
 .sched-right-sub{font-size:10px;color:var(--text-dim);}
@@ -416,7 +417,30 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
 .stale-badge{font-size:9px;color:var(--amber);font-weight:600;background:var(--amber-lt);border:1px solid var(--amber-md);border-radius:8px;padding:1px 6px;white-space:nowrap;}
 .new-badge{font-size:9px;color:var(--sage);font-weight:600;background:var(--sage-lt);border:1px solid var(--sage-md);border-radius:8px;padding:1px 6px;white-space:nowrap;}
 .arch-badge{font-size:9px;color:var(--text-dim);font-weight:600;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1px 6px;white-space:nowrap;}
-/* CC ASSISTANT CHATBOT */
+/* SCHEDULE MODAL */
+.sched-modal-overlay{position:fixed;inset:0;background:rgba(38,31,24,.4);z-index:400;display:none;align-items:center;justify-content:center;}
+.sched-modal-overlay.open{display:flex;}
+.sched-modal-card{background:#fff;border-radius:10px;padding:22px;width:360px;box-shadow:0 8px 40px rgba(38,31,24,.18);}
+.sched-modal-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--text);margin-bottom:4px;}
+.sched-modal-date{font-size:11px;color:var(--terra);font-weight:600;margin-bottom:16px;}
+.sched-field{margin-bottom:12px;}
+.sched-field label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);display:block;margin-bottom:3px;font-weight:600;}
+.sched-field select,.sched-field input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:7px 10px;font-family:'Outfit',sans-serif;font-size:12px;color:var(--text);outline:none;transition:border-color .15s;}
+.sched-field select:focus,.sched-field input:focus{border-color:var(--terra);}
+.sched-modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+.sched-modal-cancel{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:6px 14px;font-family:'Outfit',sans-serif;font-size:12px;color:var(--text-mid);cursor:pointer;}
+.sched-modal-save{background:var(--terra);border:none;border-radius:5px;padding:6px 16px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:#fff;cursor:pointer;}
+.cal-add-btn{display:block;width:100%;margin-top:4px;background:none;border:1px dashed var(--border2);border-radius:3px;padding:2px;font-size:9px;color:var(--text-dim);cursor:pointer;transition:all .15s;font-family:'Outfit',sans-serif;}
+.cal-add-btn:hover{border-color:var(--terra-md);color:var(--terra);background:var(--terra-lt);}
+.cal-quick-btns{display:flex;gap:2px;margin-top:4px;opacity:0;transition:opacity .15s;}
+.cal-day:hover .cal-quick-btns{opacity:1;}
+.cal-day.selected .cal-quick-btns{opacity:1;}
+.cal-day.today .cal-quick-btns{opacity:1;}
+.cal-qbtn{flex:1;background:var(--bg3);border:none;border-radius:3px;padding:2px 0;font-size:11px;cursor:pointer;transition:all .15s;line-height:1;}
+.cal-qbtn:hover{transform:scale(1.15);}
+.cal-qbtn-call:hover{background:var(--terra-lt);}
+.cal-qbtn-view:hover{background:var(--blue-lt);}
+.cal-qbtn-meet:hover{background:var(--violet-lt);}
 .cb-wrap{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
 .cb-messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
 .cb-msg{display:flex;gap:10px;max-width:82%;}
@@ -1250,7 +1274,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
 </div>
 
 <!-- VIEW: SCHEDULER -->
-<div class="view" id="view-scheduler">
+<div class="view" id="view-scheduler" style="flex-direction:column;background:var(--bg);">
   <div class="topbar">
     <span class="topbar-title">Scheduler <em>Call &amp; Viewing Planner</em></span>
     <span class="date-tag" id="sched-date">—</span>
@@ -1262,31 +1286,32 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
     <div class="stat"><div class="stat-l">This Week</div><div class="stat-v s-warn" id="sc4">—</div></div>
     <div class="stat"><div class="stat-l">This Month</div><div class="stat-v" id="sc5">—</div></div>
   </div>
-  <div class="sched-body">
-    <div class="sched-left">
-      <div class="cal-nav">
+  <div style="flex:1;display:flex;min-height:0;overflow:hidden;">
+    <!-- LEFT: Calendar -->
+    <div style="flex:1;overflow-y:auto;padding:16px 20px 40px;min-width:0;background:var(--bg);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <button class="cal-nav-btn" onclick="calPrev()">← Prev</button>
-        <div class="cal-nav-title" id="cal-title">—</div>
+        <div class="cal-nav-title" id="cal-title" style="font-family:'Playfair Display',serif;font-size:17px;color:var(--text);">—</div>
         <button class="cal-nav-btn" onclick="calNext()">Next →</button>
       </div>
-      <div class="cal-grid">
-        <div class="day-names">
+      <div style="width:100%;">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;">
           <div class="day-name">Sun</div><div class="day-name">Mon</div><div class="day-name">Tue</div>
           <div class="day-name">Wed</div><div class="day-name">Thu</div><div class="day-name">Fri</div><div class="day-name">Sat</div>
         </div>
-        <div class="weeks" id="cal-weeks"></div>
+        <div id="cal-weeks" style="display:flex;flex-direction:column;gap:3px;"></div>
       </div>
     </div>
-    <div class="sched-right">
-      <div class="sched-right-header">
+    <!-- RIGHT: Event panel -->
+    <div style="width:280px;min-width:280px;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
         <div class="sched-right-title" id="sched-panel-title">Upcoming Events</div>
         <div class="sched-right-sub" id="sched-panel-sub">All scheduled calls &amp; viewings</div>
       </div>
-      <div class="sched-right-scroll" id="sched-event-list"></div>
+      <div style="flex:1;overflow-y:auto;padding:8px;" id="sched-event-list"></div>
     </div>
   </div>
 </div>
-
 <!-- VIEW: GENERAL CONCERNS -->
 <div class="view" id="view-tasks">
   <div class="topbar">
@@ -1537,6 +1562,38 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font
       <button class="fp-mbtn-cancel" onclick="closeFpModal()">Cancel</button>
       <button class="fp-mbtn-clear" onclick="fpClearBooth()">Clear All</button>
       <button class="fp-mbtn-save" onclick="saveFpAssignment()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE EVENT MODAL -->
+<div class="sched-modal-overlay" id="sched-modal-overlay">
+  <div class="sched-modal-card">
+    <div class="sched-modal-title">Schedule Event</div>
+    <div class="sched-modal-date" id="sched-modal-date">—</div>
+    <div class="sched-field">
+      <label>Lead</label>
+      <select id="sched-modal-lead"></select>
+    </div>
+    <div class="sched-field">
+      <label>Event Type</label>
+      <select id="sched-modal-type">
+        <option value="call">📞 Call</option>
+        <option value="viewing">🏢 Viewing</option>
+        <option value="meeting">🤝 Meeting</option>
+      </select>
+    </div>
+    <div class="sched-field">
+      <label>Time (optional)</label>
+      <input type="time" id="sched-modal-time" placeholder="e.g. 14:30">
+    </div>
+    <div class="sched-field">
+      <label>Notes (optional)</label>
+      <input type="text" id="sched-modal-notes" placeholder="e.g. Follow up on proposal">
+    </div>
+    <div class="sched-modal-btns">
+      <button class="sched-modal-cancel" onclick="closeSchedModal()">Cancel</button>
+      <button class="sched-modal-save" onclick="saveSchedEvent()">Save Event</button>
     </div>
   </div>
 </div>
@@ -1913,6 +1970,7 @@ function ttPill(tt){
   if(!tt||!map[tt])return'';
   return`<span class="tt-pill ${map[tt][1]}">${map[tt][0]}</span>`;
 }
+function ownerDisplay(c){
   if(!c.owner)return`<span style="font-size:10px;color:var(--text-dim);font-style:italic">Unassigned</span>`;
   const u=USERS[c.owner];
   return`${userAvatar(c.owner,14)}<span style="font-size:10px;font-weight:600;color:${u?.color||'var(--text-mid)'}">${c.owner}</span>`;
@@ -2406,6 +2464,62 @@ function getAllScheduledEvents(){
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
 function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
 
+// ── SCHEDULE EVENT MODAL ─────────────────────────────────────
+let schedModalDate = null;
+
+function openSchedModal(dateStr, presetType){
+  schedModalDate = dateStr;
+  const ov = document.getElementById('sched-modal-overlay');
+  const dateEl = document.getElementById('sched-modal-date');
+  const leadSel = document.getElementById('sched-modal-lead');
+  const typeEl = document.getElementById('sched-modal-type');
+  const notesEl = document.getElementById('sched-modal-notes');
+  const timeEl = document.getElementById('sched-modal-time');
+  if(dateEl){
+    const d = new Date(dateStr+'T00:00:00');
+    dateEl.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  }
+  if(leadSel){
+    const active = leads.filter(l=>!archived[l.id]).sort((a,b)=>b.pri-a.pri);
+    leadSel.innerHTML = '<option value="">— Select a lead —</option>'+active.map(l=>`<option value="${l.id}">${l.name} (@${l.ig})</option>`).join('');
+  }
+  if(typeEl && presetType) typeEl.value = presetType;
+  if(notesEl) notesEl.value = '';
+  if(timeEl) timeEl.value = '';
+  if(ov) ov.classList.add('open');
+}
+
+function closeSchedModal(){
+  const ov = document.getElementById('sched-modal-overlay');
+  if(ov) ov.classList.remove('open');
+  schedModalDate = null;
+}
+
+function saveSchedEvent(){
+  if(!schedModalDate) return;
+  const leadId = document.getElementById('sched-modal-lead')?.value;
+  const type = document.getElementById('sched-modal-type')?.value;
+  const time = document.getElementById('sched-modal-time')?.value || '';
+  const notes = document.getElementById('sched-modal-notes')?.value || '';
+  if(!leadId){ alert('Please select a lead.'); return; }
+  const c = getCRM(leadId);
+  const fullDate = time ? schedModalDate+'T'+time : schedModalDate;
+  if(type==='call') c.callDate = fullDate;
+  else if(type==='viewing') c.viewingDate = fullDate;
+  else if(type==='meeting'){ c.callDate = fullDate; } // store meetings as calls
+  const typeLabel = type==='call'?'📞 Call':type==='viewing'?'🏢 Viewing':'🤝 Meeting';
+  const notesVal = document.getElementById('sched-modal-notes')?.value||'';
+  logActivity(leadId,'scheduled',
+    `${typeLabel} scheduled for ${schedModalDate}${time?' at '+time:''}${notesVal?' — '+notesVal:''} by ${currentUser}`);
+  saveAll();
+  closeSchedModal();
+  renderScheduler();
+  // Also highlight the day that was just scheduled
+  calSelectedDate = schedModalDate;
+  renderCalendar();
+  renderSchedPanel(schedModalDate);
+}
+
 function renderScheduler(){
   updateSchedStats();
   renderCalendar();
@@ -2455,7 +2569,18 @@ function renderCalendar(){
         const evs=byDay[day]||[];
         const isSel=calSelectedDate===dateStr;
         cell.className=`cal-day${isT?' today':''}${isSel?' selected':''}${evs.length?' has-events':''}`;
-        cell.innerHTML=`<div class="cal-day-num">${day}</div><div class="cal-events-list">${evs.slice(0,3).map(e=>`<div class="cal-event ${e.type}">${e.leadName}</div>`).join('')}${evs.length>3?`<div style="font-size:8px;color:var(--text-dim)">+${evs.length-3} more</div>`:''}</div>`;
+        // Event chips
+        const evChips = evs.slice(0,2).map(e=>{
+          const icon = e.type==='call'?'📞':e.type==='meeting'?'🤝':'🏢';
+          return`<div class="cal-event ${e.type}" style="cursor:pointer" onclick="event.stopPropagation();openDrawer('${e.leadId}')">${icon} ${e.leadName}</div>`;
+        }).join('') + (evs.length>2?`<div style="font-size:8px;color:var(--text-dim)">+${evs.length-2} more</div>`:'');
+        // Quick-add buttons
+        const addBtns = `<div class="cal-quick-btns">
+          <button class="cal-qbtn cal-qbtn-call" onclick="event.stopPropagation();openSchedModal('${dateStr}','call')" title="Schedule Call">📞</button>
+          <button class="cal-qbtn cal-qbtn-view" onclick="event.stopPropagation();openSchedModal('${dateStr}','viewing')" title="Schedule Viewing">🏢</button>
+          <button class="cal-qbtn cal-qbtn-meet" onclick="event.stopPropagation();openSchedModal('${dateStr}','meeting')" title="Schedule Meeting">🤝</button>
+        </div>`;
+        cell.innerHTML=`<div class="cal-day-num">${day}</div>${evChips}${addBtns}`;
         const cap=dateStr;
         cell.onclick=()=>selectCalDay(cap);
         day++;
@@ -2510,8 +2635,9 @@ function schedEventCard(e,ts){
   const isT=e.date===ts;const isFut=e.date>ts;
   const dc=isT?'today-d':isFut?'upcoming':'past';
   const u=e.owner?USERS[e.owner]:null;
+  const icon=e.type==='call'?'📞 Call':e.type==='meeting'?'🤝 Meeting':'🏢 Viewing';
   return`<div class="sched-event-item ${e.type}-event" onclick="openDrawer('${e.leadId}')">
-    <div class="sei-type ${e.type}">${e.type==='call'?'📞 Call':'🏢 Viewing'}</div>
+    <div class="sei-type ${e.type}">${icon}</div>
     <div class="sei-name">${e.leadName}</div>
     <div class="sei-meta">
       <span class="sei-date ${dc}">${fmtDate(e.date)}</span>
@@ -2685,7 +2811,12 @@ function adminImportLeads(){
     if(idx>=0){leads[idx]={...leads[idx],...nl};updated++;}
     else{leads.push(nl);added++;}
   });
-  saveAll();renderLeads();renderAdminList();
+  saveAll();
+  renderLeads();
+  renderAdminList();
+  updateSubcatBadges();
+  updatePipelineSubcatBadges();
+  if(currentAppView==='pipeline') buildBoard();
   const msg=document.getElementById('admin-msg');
   msg.textContent=`✓ ${added} added, ${updated} updated`;
   msg.style.opacity='1';setTimeout(()=>msg.style.opacity='0',3000);
@@ -3897,6 +4028,9 @@ window.showApiKeyModal=showApiKeyModal;
 window.closeApiKeyModal=closeApiKeyModal;
 window.saveApiKey=saveApiKey;
 window.openAddLead=openAddLead;
+window.openSchedModal=openSchedModal;
+window.closeSchedModal=closeSchedModal;
+window.saveSchedEvent=saveSchedEvent;
 
 async function init(){
   const now=new Date();
